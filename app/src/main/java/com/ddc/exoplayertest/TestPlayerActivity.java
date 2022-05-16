@@ -10,6 +10,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
+import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Button;
@@ -90,7 +91,7 @@ public class TestPlayerActivity extends AppCompatActivity implements View.OnClic
     private int fastForwardMs = 2;//快进
     private AitripDataSourceFactory aitripFactory;
     private String Aikey = "1231231241241243";
-    private static final String deng  = "/sdcard/Music/终于等到你.mp3";
+    private static final String deng  = "/sdcard/mp3/小小-容祖儿.mp3";
 
     private static String FildDir = Environment.getExternalStorageDirectory().getAbsolutePath() + File.separator +
             "ExoPlayerTest";
@@ -193,8 +194,10 @@ public class TestPlayerActivity extends AppCompatActivity implements View.OnClic
 
     //播放事件监听
     private ExoPlayer.EventListener eventListener = new ExoPlayer.EventListener() {
+
+
         @Override
-        public void onTimelineChanged(Timeline timeline, Object manifest) {
+        public void onTimelineChanged(Timeline timeline, Object manifest, int reason) {
             Timber.e("播放: onTimelineChanged 周期总数 " + timeline);
         }
 
@@ -279,18 +282,28 @@ public class TestPlayerActivity extends AppCompatActivity implements View.OnClic
         }
 
         @Override
+        public void onShuffleModeEnabledChanged(boolean shuffleModeEnabled) {
+
+        }
+
+        @Override
         public void onPlayerError(ExoPlaybackException error) {
             Timber.e("播放: onPlayerError  ");
         }
 
         @Override
-        public void onPositionDiscontinuity() {
+        public void onPositionDiscontinuity(int reason) {
             Timber.e("播放: onPositionDiscontinuity  ");
         }
 
         @Override
         public void onPlaybackParametersChanged(PlaybackParameters playbackParameters) {
             Timber.e("播放: onPlaybackParametersChanged  ");
+        }
+
+        @Override
+        public void onSeekProcessed() {
+
         }
     };
 
@@ -353,11 +366,11 @@ public class TestPlayerActivity extends AppCompatActivity implements View.OnClic
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.bt_encrypt://加密
-                AESHelper.encryptFile(Aikey, deng, FildDir + "/" + "终于等到你.mp3.aitrip");
+                AESHelper.encryptFile(Aikey, deng, FildDir + "/" + "小小.mp3.aitrip");
                 break;
 
             case R.id.bt_encryplay://解密播放,自定义路径
-                reLoadSourcePlay(FildDir + "/" + "终于等到你.mp3.aitrip");
+                reLoadSourcePlay(FildDir + "/" + "小小.mp3.aitrip");
                 break;
 
             case R.id.already_player://播放进度时间，点击上一首
@@ -383,7 +396,7 @@ public class TestPlayerActivity extends AppCompatActivity implements View.OnClic
         }
         int windowIndex = player.getCurrentWindowIndex();
         timeline.getWindow(windowIndex, window);
-        int previousWindowIndex = timeline.getPreviousWindowIndex(windowIndex, player.getRepeatMode());
+        int previousWindowIndex = timeline.getPreviousWindowIndex(windowIndex, player.getRepeatMode(),true);
         Timber.e("previousWindowIndex:" + previousWindowIndex);
         Timber.e("getCurrentPosition:" + player.getCurrentPosition());
         Timber.e("isDynamic:" + window.isDynamic);
@@ -411,7 +424,7 @@ public class TestPlayerActivity extends AppCompatActivity implements View.OnClic
 
         int windowIndex = player.getCurrentWindowIndex();
         Timber.e("windowIndex:" + windowIndex);
-        int nextWindowIndex = timeline.getNextWindowIndex(windowIndex, player.getRepeatMode());
+        int nextWindowIndex = timeline.getNextWindowIndex(windowIndex, player.getRepeatMode(),true);
         Timber.e("nextWindowIndex:" + nextWindowIndex);
         Timber.e("isDynamic:" + window.isDynamic);
         Timber.e("TIME_UNSET:" + C.TIME_UNSET);
@@ -462,7 +475,13 @@ public class TestPlayerActivity extends AppCompatActivity implements View.OnClic
     private void reLoadSourcePlay(String url) {
         Timber.e("重载资源file1---:" + url);
         //重载资源
-        videoSource.releaseSource();
+        videoSource.releaseSource(new MediaSource.SourceInfoRefreshListener(){
+
+            @Override
+            public void onSourceInfoRefreshed(MediaSource source, Timeline timeline, @Nullable Object manifest) {
+
+            }
+        });
         seekBar.setMax(0);
         seekBar.setProgress(0);
         allPlayerTime.setText("00:00");
@@ -533,7 +552,12 @@ public class TestPlayerActivity extends AppCompatActivity implements View.OnClic
             player.stop();
             player.release();
             player = null;
-            videoSource.releaseSource();
+            videoSource.releaseSource(new MediaSource.SourceInfoRefreshListener() {
+                @Override
+                public void onSourceInfoRefreshed(MediaSource source, Timeline timeline, @Nullable Object manifest) {
+
+                }
+            });
             aitripFactory = null;
             extractorsFactory = null;
         }
